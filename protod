@@ -9,7 +9,7 @@ Copyright (c) 2012 SYSDREAM
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is furnished
 to do so, subject to the following conditions:
 
@@ -88,19 +88,19 @@ def render_type(field_type, package):
 class ProtobufFieldsWalker:
     '''
     Homemade Protobuf fields walker
-    
+
     This class allows Protod to walk the fields
     and determine the probable size of the protobuf
     serialized file.
     '''
-    
+
     def __init__(self, stream):
         self._stream = stream
         self._size =  -1
-    
+
     def get_size(self):
         return self._size
-    
+
     def walk(self):
         end = False
         offset = 0
@@ -135,11 +135,11 @@ class ProtobufFieldsWalker:
 class FileDescriptorDisassembler:
     '''
     Core disassembling class
-    
+
     This class parses the provided serialized data and
     produces one or many .proto files.
     '''
-    
+
     def __init__(self, file_desc):
         self.desc = file_desc
 
@@ -169,7 +169,7 @@ class FileDescriptorDisassembler:
             'sint64'
         ]
         return types[t]
-    
+
     def renderEnum(self, enum, depth=0, package='', nested=False):
         buffer = '\n'
         buffer += '%senum %s {\n' % (' '*depth, enum.name)
@@ -192,12 +192,12 @@ class FileDescriptorDisassembler:
                         if self.getTypeStr(field.type) == 'string':
                             field.default_value = '"%s"'% field.default_value
                         buffer += '%s%s %s %s = %d [default = %s];\n' % (' '*depth, self.getLabel(field.label), self.getTypeStr(field.type), field.name, field.number, field.default_value)
-                    else:    
+                    else:
                         buffer += '%s%s %s %s = %d;\n' % (' '*depth, self.getLabel(field.label), self.getTypeStr(field.type), field.name, field.number)
         except ValueError:
             buffer += '%smessage %s {\n' % (' '*depth, field.name)
             _package = package+'.'+field.name
-            
+
             if len(field.nested_type)>0:
                 for nested in field.nested_type:
                     buffer += self.renderField(nested, depth+1, _package, nested=True)
@@ -216,13 +216,13 @@ class FileDescriptorDisassembler:
         print '[+] Processing %s' % self.desc.name
         buffer = ''
         buffer += 'package %s;\n\n' % self.desc.package
-        
+
         # add dependencies
         if len(self.desc.dependency)>0:
             for dependency in self.desc.dependency:
                 buffer += 'import "%s";\n' % dependency
             buffer += '\n'
-        
+
         if len(self.desc.enum_type)>0:
             for enum in self.desc.enum_type:
                 buffer += self.renderEnum(enum, package=self.desc.package)
@@ -234,7 +234,7 @@ class FileDescriptorDisassembler:
             if _dir != '' and not os.path.exists(_dir):
                 os.makedirs(_dir)
             open(filename,'w').write(buffer)
-        else:        
+        else:
             _dir = os.path.dirname(self.desc.name)
             if _dir != '' and not os.path.exists(_dir):
                 os.makedirs(_dir)
@@ -247,7 +247,7 @@ class FileDescriptorDisassembler:
 class ProtobufExtractor:
     def __init__(self, filename=None):
         self.filename = filename
-    
+
     def extract(self):
         try:
             content = open(self.filename,'rb').read()
@@ -265,13 +265,14 @@ class ProtobufExtractor:
                                 walker = ProtobufFieldsWalker(stream[r-j-1:])
                                 walker.walk()
                                 probable_size = walker.get_size()
-                                
+
                                 """
                                 Probable size approach is not perfect,
                                 we add a delta of 1024 bytes to be sure
                                 not to miss something =)
                                 """
-                                for k in range(probable_size+1024, 0, -1):
+                                k = probable_size+1024
+                                while k > 0: # for k in range(probable_size+1024, 0, -1):
                                     try:
                                         fds  = FileDescriptorProto()
                                         fds.ParseFromString(stream[r-j-1:r-j-1+k])
@@ -282,6 +283,7 @@ class ProtobufExtractor:
                                         pass
                                     except UnicodeDecodeError:
                                         pass
+                                    k -= 1
                                 break
                         except IndexError:
                             pass
@@ -304,9 +306,9 @@ class ProtobufExtractor:
                             seen.append(res.desc.name)
                 except DecodeError:
                     pass
-            
+
         except IOError:
-            print '[!] Unable to read %s' % sys.argv[1]        
+            print '[!] Unable to read %s' % sys.argv[1]
 
 if __name__ == '__main__':
     if len(sys.argv)>=2:
